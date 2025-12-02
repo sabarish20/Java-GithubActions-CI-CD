@@ -22,4 +22,31 @@ jobs:
         
     - name: Build with Maven
       run: mvn -B package --file pom.xml
+  
+  securtiy:
 
+    runs-on: ubuntu-latest
+    needs: build
+    
+    steps:
+    - uses: actions/checkout@v4
+      name: Checkout the Repo
+
+    - name: Install Trivy
+      run: |
+        sudo apt-get install wget gnupg -y
+        wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | gpg --dearmor | sudo tee /usr/share/keyrings/trivy.gpg > /dev/null
+        echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb generic main" | sudo tee -a /etc/apt/sources.list.d/trivy.list
+        sudo apt-get update -y
+        sudo apt-get install trivy -y
+        
+    - name: Trivy Filesystem Scan
+      run: trivy fs . --format table -o fs-report.json
+
+    - name: Install Gitleaks
+      run: sudo apt install gitleaks -y
+
+    - name: Gitleaks Scan
+      run: gitleaks detect source . -f json -r gitleaks-report.json
+
+      
